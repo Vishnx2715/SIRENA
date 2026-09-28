@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>SIRENA</title>
+  <meta name="description" content="SIRENA transforms raw hydroacoustic side-scan sonar into geotagged subsea intelligence with deep neural detection, ray-traced acoustic shadow validation, and real-time 3D bathymetry.">
+
+  <!-- Preconnect & Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Three.js for Interactive 3D Bathymetric Sonar -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <!-- External Modular CSS -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- Top Scroll Progress Line -->
+  <div id="scrollProgress"></div>
+
+  <!-- Government Logo Bar -->
+  <div id="govLogoBar">
+    <div class="gov-logo-inner">
+      <div class="gov-left">
+        <span class="gov-title">SMART INDIA HACKATHON 2026</span>
+      </div>
+      <div class="gov-divider"></div>
+      <div class="gov-logos">
+        <div class="logo-card gov-logo-card">
+          <img src="images/moes_logo.jpg?v=2" alt="Ministry of Earth Sciences" class="gov-logo-single" />
+        </div>
+        <div class="logo-card gov-logo-card">
+          <img src="images/sih_logo_bar.jpg?v=2" alt="Ministry of Education | AICTE | MoE Innovation Cell | Smart India Hackathon 2026" class="gov-logo-strip" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tactical Navigation & Telemetry Header -->
+  <header id="navbar">
+    <div class="nav-main">
+      <div class="brand">
+        <div class="brand-logo-icon">
+          <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
+            <circle cx="15" cy="15" r="13" stroke="rgba(2, 132, 199, 0.25)" stroke-width="1.2"/>
+            <circle cx="15" cy="15" r="8.5" stroke="rgba(2, 132, 199, 0.45)" stroke-width="1.2"/>
+            <path d="M15 15 L15 2" stroke="#0284c7" stroke-width="1.8"/>
+            <path d="M15 15 L25 8" stroke="#0284c7" stroke-width="1.4" opacity="0.6"/>
+            <path d="M5 20 Q10 15 15 20 Q20 25 25 20" stroke="#0284c7" stroke-width="1.5" fill="none" opacity="0.8"/>
+            <circle cx="15" cy="15" r="2.5" fill="#0284c7"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          SIRENA
+          <span class="brand-badge">NODE-A7</span>
+        </div>
+      </div>
+
+      <nav class="navlinks">
+        <a href="#technology">Technology</a>
+        <a href="#how-it-works">How It Works</a>
+        <a href="#dashboard">Dashboard</a>
+        <a href="#preprocessing">Preprocessing</a>
+        <a href="#applications">Applications</a>
+        <a href="#team">Team</a>
+      </nav>
+
+      <div class="nav-actions">
+        <!-- Audio Ping Toggle -->
+        <button class="audio-toggle active" id="audioToggle" title="Acoustic Sonar Sound: ON" aria-label="Toggle Sonar Audio">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          </svg>
+        </button>
+
+        <a href="#how-it-works" class="btn btn-ghost btn-sm">Explore System</a>
+        <button class="btn btn-primary btn-sm btn-ping">Ping Active</button>
+        <button class="navtoggle" id="navToggle" aria-label="Menu">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Live Telemetry Stream Ticker -->
+    <div class="telemetry-ribbon">
+      <div class="telemetry-items">
+        <div class="telemetry-item">DEPTH: <span class="val">3,420.4M</span></div>
+        <div class="telemetry-item">WATER VEL: <span class="val" id="telemVel">1,482.1 m/s</span></div>
+        <div class="telemetry-item">SALINITY: <span class="val">35.1 PSU</span></div>
+        <div class="telemetry-item">LATENCY: <span class="val" id="telemLatency">4.2ms</span></div>
+        <div class="telemetry-item">SWATH FREQ: <span class="val">450 kHz DUAL-SAS</span></div>
+        <div class="telemetry-item">ARRAY: <span class="val" style="color:var(--emerald);">99.8% NOMINAL</span></div>
+      </div>
+      <div class="telemetry-status">
+        <div class="ping-indicator">
+          <span class="beacon"></span>
+          PING RATE: 12Hz ACTIVE
+        </div>
+        <span style="color:var(--text-faint);">|</span>
+        <span id="telemClock" style="color:var(--cyan-deep); font-weight:700;">14:28:09.112Z</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Drawer -->
+  <div class="mobile-nav" id="mobileNav">
+    <a href="#technology">Technology</a>
+    <a href="#how-it-works">How It Works</a>
+    <a href="#dashboard">Dashboard</a>
+    <a href="#preprocessing">Preprocessing</a>
+    <a href="#applications">Applications</a>
+    <a href="#team">Team</a>
+    <button class="btn btn-primary btn-ping" style="width:100%; margin-top:8px;">Ping Active</button>
+  </div>
+
+  <!-- Hero Section -->
+  <section id="hero">
+    <div class="hud-grid"></div>
+    <div class="wrap hero-grid">
+      <div class="hero-content scroll-reveal active">
+        <div class="eyebrow">AI Hydroacoustic Intelligence Platform</div>
+        <h1 class="hero-title">
+          See What Lies<br>
+          <span class="glow-cyan">Beneath the Signal.</span>
+        </h1>
+        <p class="lede">
+          SONARIS converts raw hydroacoustic side-scan sonar streams into actionable, geotagged debris intelligence — detecting subsea man-made objects with physical shadow ray-tracing and automated false-positive filtering.
+        </p>
+
+        <div class="hero-actions">
+          <button class="btn btn-primary btn-ping">Deploy Ping Array</button>
+          <a href="#dashboard" class="btn btn-ghost">Open Intelligence Deck</a>
+          <a href="https://youtu.be/niqt3L2tlqc?si=TYEDluQKXwLj_Vrk" target="_blank" rel="noopener noreferrer" class="btn btn-ghost">&#9654; Explore Video</a>
+        </div>
+
+        <div class="hero-badges">
+          <span class="hero-badge-item">SIDE-SCAN SONAR (SSS)</span>
+          <span class="hero-badge-item">REAL-TIME 3D BATHYMETRY</span>
+          <span class="hero-badge-item">WGS-84 GEOREFERENCING</span>
+          <span class="hero-badge-item">EDGE JETSON ACCELERATED</span>
+        </div>
+      </div>
+
+      <!-- Sonar Intelligence Visual Showcase -->
+      <div class="sonar-showcase scroll-reveal active">
+
+        <!-- Stats Row -->
+        <div class="showcase-stats">
+          <div class="sstat">
+            <div class="sstat-val">450 kHz</div>
+            <div class="sstat-lab">Dual-Frequency SAS</div>
+          </div>
+          <div class="sstat">
+            <div class="sstat-val">≥96.4%</div>
+            <div class="sstat-lab">Detection Accuracy</div>
+          </div>
+          <div class="sstat">
+            <div class="sstat-val">&lt;90ms</div>
+            <div class="sstat-lab">Per-Ping Latency</div>
+          </div>
+          <div class="sstat">
+            <div class="sstat-val">WGS-84</div>
+            <div class="sstat-lab">Georeferenced Output</div>
+          </div>
+        </div>
+
+        <!-- Sonar Image Cards -->
+        <div class="showcase-imgs">
+          <!-- Natural Seabed -->
+          <div class="simg-card reticle-box tilt-card">
+            <div class="simg-label">
+              <span class="simg-dot" style="background:#64748b;"></span>
+              NATURAL SEABED
+            </div>
+            <div class="simg-wrap">
+              <img
+                src="images/natural_seabed_sonar.jpg"
+                alt="Side-scan sonar image of natural seabed showing sandy ripples, sediment patterns and rock outcrops"
+                loading="lazy"
+              />
+              <div class="simg-overlay">
+                <span class="simg-chip">Unclassified Background</span>
+              </div>
+            </div>
+            <p class="simg-desc">Sand ripples, sediment ridges, and rock outcrops — natural backscatter patterns that SIRENA learns to reject with &gt;94% specificity.</p>
+          </div>
+
+          <!-- Subsea Debris -->
+          <div class="simg-card reticle-box tilt-card">
+            <div class="simg-label">
+              <span class="simg-dot" style="background:#0284c7;"></span>
+              SUBSEA DEBRIS &amp; TARGETS
+            </div>
+            <div class="simg-wrap">
+              <img
+                src="images/subsea_debris_sonar.jpg"
+                alt="Side-scan sonar image showing subsea debris including shipwreck, containers and pipeline with distinctive acoustic shadows"
+                loading="lazy"
+              />
+              <div class="simg-overlay">
+                <span class="simg-chip" style="background:rgba(2,132,199,0.18); border-color:rgba(2,132,199,0.4); color:#0284c7;">Confirmed Detection</span>
+              </div>
+            </div>
+            <p class="simg-desc">Shipwrecks, cylindrical containers, and pipelines — man-made returns surfaced with millimetre precision and shadow ray-tracing validation.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Tech Flow Strip -->
+  <div class="techstrip">
+    <div class="wrap">
+      <div class="strip-row">
+        <span class="node">RAW HYDROACOUSTIC SSS</span><span class="arrow">→</span>
+        <span class="node">GEOMETRIC PROJECTION</span><span class="arrow">→</span>
+        <span class="node">LEE SPECKLE NOISE ATTENUATION</span><span class="arrow">→</span>
+        <span class="node">AI ANOMALY DETECTION</span><span class="arrow">→</span>
+        <span class="node">ACOUSTIC SHADOW RAY-TRACING</span><span class="arrow">→</span>
+        <span class="node">WGS-84 GEOREFERENCING</span>
+      </div>
+      <div class="strip-flow-line"><div class="pulse"></div></div>
+    </div>
+  </div>
+
+  <!-- The Challenge -->
+  <section class="section" id="problem">
+    <div class="hud-grid"></div>
+    <div class="wrap">
+      <div class="eyebrow">The Challenge</div>
+      <h2 class="h2">Underwater debris doesn't always look like debris.</h2>
+      <p class="lede">
+        Side-scan sonar imagery contains multiplicative speckle noise, bathymetric shadows, and variable benthic structures. The core engineering feat is discerning which returns represent true man-made objects, and which are natural geological backscatter.
+      </p>
+
+      <div class="compare-grid scroll-reveal">
+        <div class="compare-card reticle-box tilt-card">
+          <h4>NATURAL BENTHIC BACKGROUND</h4>
+          <div class="clabel">Natural Seabed</div>
+          <canvas id="natCanvas"></canvas>
+          <p>Sand ripples, sediment ridges, and rock outcrops — background noise the model learns to reject.</p>
+        </div>
+
+        <div class="compare-card reticle-box tilt-card">
+          <h4>HIGH-RETURN MAN-MADE TARGETS</h4>
+          <div class="clabel">Subsea Debris & Targets</div>
+          <canvas id="manCanvas"></canvas>
+          <p>Pipelines, shipwrecks, cylindrical containers, and ghost nets — key signatures surfaced with millimeter precision.</p>
+        </div>
+      </div>
+
+      <div class="pcard-grid scroll-reveal">
+        <div class="pcard reticle-box">
+          <span class="num">01</span>
+          <div class="diagram" id="diag1"></div>
+          <h5>Speckle Noise</h5>
+          <p>Multiplicative hydroacoustic interference that diffuses object boundaries.</p>
+        </div>
+        <div class="pcard reticle-box">
+          <span class="num">02</span>
+          <div class="diagram" id="diag2"></div>
+          <h5>Acoustic Shadows</h5>
+          <p>Bathymetric depressions casting void shadows resembling independent objects.</p>
+        </div>
+        <div class="pcard reticle-box">
+          <span class="num">03</span>
+          <div class="diagram" id="diag3"></div>
+          <h5>Natural False Positives</h5>
+          <p>Sediment ridges, rock fields, and reef outcroppings mimicking rigid debris.</p>
+        </div>
+        <div class="pcard reticle-box">
+          <span class="num">04</span>
+          <div class="diagram" id="diag4"></div>
+          <h5>Variable Resolution</h5>
+          <p>Dynamic beam spreads and altitude shifts producing non-uniform spatial resolution.</p>
+        </div>
+        <div class="pcard reticle-box">
+          <span class="num">05</span>
+          <div class="diagram" id="diag5"></div>
+          <h5>Motion Artifacts</h5>
+          <p>Vessel pitch, roll, yaw, and towfish heave distorting linear swath profiles.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Core Pipeline -->
+  <section class="section" id="technology">
+    <div class="wrap">
+      <div class="eyebrow">Core Pipeline</div>
+      <h2 class="h2">From sonar pixels to searchable intelligence.</h2>
+      <p class="lede">A continuous hydroacoustic pipeline transforming raw acoustic returns into structured geospatial intelligence.</p>
+      <div class="pipeline-vert scroll-reveal" id="pipelineVert"></div>
+    </div>
+  </section>
+
+  <!-- How It Works: 6-Stage System Architecture -->
+  <section class="section" id="how-it-works">
+    <div class="wrap">
+      <div class="eyebrow">How The System Works</div>
+      <h2 class="h2">Six core stages. Built for speed, clarity, and precision.</h2>
+      <p class="lede">Each stage handles a specific aspect of hydroacoustic signal processing, false-positive elimination, and automated geotagging.</p>
+
+      <div class="stages-grid scroll-reveal">
+        <!-- Stage 1 -->
+        <div class="stage-card reticle-box tilt-card">
+          <div class="stage-card-head">
+            <span class="stage-pill">STAGE 01</span>
+            <span class="stage-speed">&lt; 35ms / ping</span>
+          </div>
+          <h4>Multi-Format Sonar Ingestion</h4>
+          <p>Decodes raw hydroacoustic logs and synchronizes them with real-time GNSS and inertial navigation systems while correcting for dynamic towfish layback.</p>
+          <ul class="stage-points">
+            <li>
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              Supports standard formats (.XTF, .JSF, Sonar TIFF, NMEA 0183)
+            </li>
+            <li>
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              Interpolates ping timestamps with millisecond GNSS positioning
+            </li>
+            <li>
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              Automatic drop-ping detection and zero-fill recovery
+            </li>
+          </ul>
+          <div class="stage-card-foot">
+            <span class="stage-out">Deliverable: <b>Synchronized Raw Waterfall Matrix</b></span>
+            <span class="tag">Lossless Ingestion</span>
+          </div>
+        </div>
+
+        <!-- Stage 2 -->
+        <div class="stage-card reticle-box tilt-card">
+          <div class="stage-card-head">
+            <span class="stage-pill">STAGE 02</span>
+            <span class="stage-speed">&lt; 25ms / swath</span>
+          </div>
+          <h4>Geometric & Nadir Correction</h4>
+          <p>Removes water column blind spots and straightens acoustic slant-range distortions to yield an orthorectified, true-to-scale map of the benthic floor.</p>
+          <ul class="stage-points">
+            <li>
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              Automatic first-bottom reflection (nadir) altitude tracking
+            </li>
+            <li>
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              Pythagorean slant-range to ground-range conversion
+            </li>
+            <li>
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              Along-track speed equalization via bilinear resampling
+            </li>
+          </ul>
+          <div class="stage-card-foot">
+            <span class="stage-out">Deliverable: <b>Orthorectified Ground Mosaic</b></span>
+            <span class="tag">True Metric Scale</span>
+          </div>
+        </div>
+
+        <!-- Stage 3 -->
+        <div class="stage-card reticle-box tilt-card">
+          <div class="stage-card-head">
+            <span class="stage-pill">STAGE 03</span>
+            <span class="stage-speed">&lt; 18ms / tile</span>
+          </div>
+          <h4>Signal Denoising & Enhancement</h4>
+          <p>Suppresses multiplicative acoustic speckle noise while sharpening subtle contrast differences and preserving sharp acoustic shadow edges.</p>
+          <ul class="stage-points">
+            <li>
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              Adaptive Local MMSE Lee speckle attenuation filter
+            </li>
+            <li>
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              CLAHE contrast equalization with localized clipping limit
+            </li>
+            <li>
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              Time-Varying Gain (TVG) compensation for far-swath attenuation
+            </li>
+          </ul>
+          <div class="stage-card-foot">
+            <span class="stage-out">Deliverable: <b>High-Fidelity AI-Ready Tensor</b></span>
+            <span class="tag">Edge Preserving</span>
+          </div>
+        </div>
+
+        <!-- Stage 4 -->
+        <div class="stage-card reticle-box tilt-card">
+          <div class="stage-card-head">
+            <span class="stage-pill">STAGE 04</span>
+            <span class="stage-speed">&lt; 24ms / batch</span>
+          </div>
+          <h4>AI Debris Detection & Classification</h4>
+          <p>Deploys a cascaded deep convolutional architecture to isolate man-made anomalies and classify targets into pipelines, wrecks, cylinders, and ghost nets.</p>
+          <ul class="stage-points">
+            <li>
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              Oriented Bounding Box (OBB) detection with rotation angle
+            </li>
+            <li>
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              Multi-scale sliding tiles with 20% stride overlap
+            </li>
+            <li>
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              Dual highlight-shadow segment pairing
+            </li>
+          </ul>
+          <div class="stage-card-foot">
+            <span class="stage-out">Deliverable: <b>Candidate Bounding Boxes & Masks</b></span>
+            <span class="tag">Multi-Class AI</span>
+          </div>
+        </div>
+
+        <!-- Stage 5 -->
+        <div class="stage-card reticle-box tilt-card">
+          <div class="stage-card-head">
+            <span class="stage-pill">STAGE 05</span>
+            <span class="stage-speed">&lt; 5ms / candidate</span>
+          </div>
+          <h4>Physics Shadow Validation</h4>
+          <p>Applies physical sonar ray-tracing principles to verify candidate targets against acoustic shadow angles and metric height expectations, weeding out false alarms.</p>
+          <ul class="stage-points">
+            <li>
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              Calculates physical object relief height from shadow length
+            </li>
+            <li>
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              Verifies acoustic shadow orientation against towfish beam axis
+            </li>
+            <li>
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              Rejects vessel cavitation bubbles and natural rock ripples
+            </li>
+          </ul>
+          <div class="stage-card-foot">
+            <span class="stage-out">Deliverable: <b>Physics-Verified Target Subset</b></span>
+            <span class="tag">70%+ FP Pruned</span>
+          </div>
+        </div>
+
+        <!-- Stage 6 -->
+        <div class="stage-card reticle-box tilt-card">
+          <div class="stage-card-head">
+            <span class="stage-pill">STAGE 06</span>
+            <span class="stage-speed">&lt; 15ms / export</span>
+          </div>
+          <h4>Precision Georeferencing & Export</h4>
+          <p>Converts confirmed detection pixel offsets into millimeter-accurate WGS-84 geographic coordinates, eliminates swath overlaps, and compiles mission dossiers.</p>
+          <ul class="stage-points">
+            <li>
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              WGS-84 / UTM geodetic forward conversion from vessel trajectory
+            </li>
+            <li>
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              Swath-to-swath deduplication using spatial Hungarian matching
+            </li>
+            <li>
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              Instant multi-format export (GeoJSON, CSV, PDF Survey Dossier)
+            </li>
+          </ul>
+          <div class="stage-card-foot">
+            <span class="stage-out">Deliverable: <b>Mission GIS Layer & PDF Report</b></span>
+            <span class="tag">WGS-84 Geotagged</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Mission Intelligence Dashboard -->
+  <section class="section" id="dashboard">
+    <div class="wrap">
+      <div class="eyebrow">Mission Intelligence</div>
+      <h2 class="h2">One mission. One unified intelligence layer.</h2>
+      <p class="lede">Real-time survey metrics, class distributions, and confidence telemetry from the latest hydroacoustic inspection run.</p>
+
+      <div class="dash-frame reticle-box scroll-reveal">
+        <div class="dash-top">
+          <div>
+            <span class="mono" style="font-size:12px; font-weight:700; color:var(--text-muted);">
+              SURVEY <b style="color:var(--text-main);">MISSION-042</b> · SECTOR 7 (BAY OF BENGAL)
+            </span>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <span class="tag" style="background:var(--emerald-dim); color:var(--emerald); border-color:rgba(5, 150, 105, 0.35); font-weight:700;">ANALYSIS COMPLETE</span>
+            <span class="tag" style="background:var(--cyan-dim); color:var(--cyan-deep); border-color:var(--line-strong);">LIVE STREAM</span>
+          </div>
+        </div>
+
+        <div class="dash-stats-grid">
+          <div class="dstat">
+            <div class="dval" data-count="24.8" data-suffix=" km²">0</div>
+            <div class="dlab">TOTAL AREA</div>
+          </div>
+          <div class="dstat">
+            <div class="dval" data-count="37">0</div>
+            <div class="dlab">CONFIRMED DETECTIONS</div>
+          </div>
+          <div class="dstat">
+            <div class="dval" data-count="24">0</div>
+            <div class="dlab">AUTO-ACCEPTED</div>
+          </div>
+          <div class="dstat">
+            <div class="dval" data-count="8">0</div>
+            <div class="dlab">NEEDS REVIEW</div>
+          </div>
+          <div class="dstat">
+            <div class="dval" data-count="112">0</div>
+            <div class="dlab">NATURAL REJECTED</div>
+          </div>
+        </div>
+
+        <div class="dash-charts-grid">
+          <div class="dchart">
+            <h6>
+              <span>DETECTIONS BY CLASS</span>
+              <span class="tag" style="font-size:9.5px;">COUNT</span>
+            </h6>
+            <svg id="chart1"></svg>
+          </div>
+          <div class="dchart">
+            <h6>
+              <span>CONFIDENCE DISTRIBUTION</span>
+              <span class="tag" style="font-size:9.5px;">TIER</span>
+            </h6>
+            <svg id="chart2"></svg>
+          </div>
+          <div class="dchart">
+            <h6>
+              <span>SWATH DETECTION TIMELINE</span>
+              <span class="tag" style="font-size:9.5px;">TREND</span>
+            </h6>
+            <svg id="chart3"></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Preprocessing Dual-Lens Slider -->
+  <section class="section" id="preprocessing">
+    <div class="wrap">
+      <div class="eyebrow">Preprocessing Engine</div>
+      <h2 class="h2">Clean the signal. Preserve the evidence.</h2>
+      <p class="lede">Drag the interactive slider below to inspect raw acoustic speckle noise versus adaptive Lee-filtered and CLAHE contrast-enhanced output.</p>
+
+      <div class="slider-wrap reticle-box scroll-reveal" id="sliderWrap">
+        <canvas id="preCanvas"></canvas>
+        <span class="slider-tag" style="left:14px;">RAW SSS BACKSCATTER</span>
+        <span class="slider-tag" style="right:14px;">LEE FILTER + CLAHE</span>
+        <div class="slider-handle" id="sliderHandle"></div>
+      </div>
+
+      <div class="pcard-grid scroll-reveal" style="grid-template-columns:repeat(2,1fr); margin-top:32px;">
+        <div class="pcard reticle-box tilt-card">
+          <h5>Local MMSE Lee Filter</h5>
+          <p>Suppresses hydroacoustic speckle noise in homogeneous seabed regions while holding edge variance high to protect target boundaries.</p>
+        </div>
+        <div class="pcard reticle-box tilt-card">
+          <h5>CLAHE Contrast Tuning</h5>
+          <p>Partitions wide sonar swathes into contextual tiles, redistributing histograms under a strict clip limit to prevent overamplifying background glare.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Marine Applications -->
+  <section class="section" id="applications">
+    <div class="wrap">
+      <div class="eyebrow">Marine Applications</div>
+      <h2 class="h2">Built for real-world subsea operations.</h2>
+      <p class="lede">Deployable across commercial hydrography, offshore energy, environmental protection, and defense sectors.</p>
+
+      <div class="card-grid-3 scroll-reveal">
+        <div class="app-card reticle-box tilt-card">
+          <div class="app-card-icon">
+            <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+          </div>
+          <h5>Marine Debris Surveys</h5>
+          <p>Rapidly catalogue and map lost containers, industrial waste, and discarded metal debris across ports and shipping routes.</p>
+        </div>
+
+        <div class="app-card reticle-box tilt-card">
+          <div class="app-card-icon">
+            <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          </div>
+          <h5>Pipeline & Cable Inspection</h5>
+          <p>Detect unburied pipeline spans, seabed scouring, free-spanning risers, and dropped object hazards along subsea routes.</p>
+        </div>
+
+        <div class="app-card reticle-box tilt-card">
+          <div class="app-card-icon">
+            <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          </div>
+          <h5>Shipwreck & Heritage Mapping</h5>
+          <p>Assists hydrographic offices and marine archaeologists in characterizing historic wreck structures and hull degradation.</p>
+        </div>
+
+        <div class="app-card reticle-box tilt-card">
+          <div class="app-card-icon">
+            <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          </div>
+          <h5>Ghost Net Remediation</h5>
+          <p>Pinpoints lost or abandoned synthetic fishing nets smothering coral outcroppings and benthic marine life.</p>
+        </div>
+
+        <div class="app-card reticle-box tilt-card">
+          <div class="app-card-icon">
+            <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
+          </div>
+          <h5>Autonomous AUV Integration</h5>
+          <p>Low-power edge model support for onboard subsea vehicles, enabling real-time anomaly alerts without umbilical cable bandwidth.</p>
+        </div>
+
+        <div class="app-card reticle-box tilt-card">
+          <div class="app-card-icon">
+            <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          </div>
+          <h5>Search & Recovery Operations</h5>
+          <p>Dramatically shortens target localization timelines for diver teams and ROVs, reducing costly support ship charter days.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- System Architecture -->
+  <section class="section">
+    <div class="wrap">
+      <div class="eyebrow">Architecture Diagram</div>
+      <h2 class="h2">End-to-end data pipeline.</h2>
+      <div class="arch-diagram scroll-reveal" id="archDiagram"></div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       TEAM MEMBERS SECTION 
+       ========================================================================== -->
+  <section class="section" id="team">
+    <div class="wrap">
+      <div class="eyebrow">Team G-SHIELD &middot; Student Innovators</div>
+      <div class="section-head scroll-reveal" style="margin-bottom: 36px;">
+        <h2 class="h2">Meet the Team</h2>
+        <p class="lede">The multidisciplinary engineering and technology team behind the SIRENA autonomous side-scan sonar intelligence system.</p>
+      </div>
+
+      <div class="team-grid-3">
+
+        <!-- Member 1: Lavanya Meiyammai P -->
+        <div class="member-card reticle-box tilt-card scroll-reveal">
+          <div class="photo-frame">
+            <img src="images/lavanya.jpeg" alt="Lavanya Meiyammai P" class="member-photo"
+              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="avatar-fallback">LM</div>
+          </div>
+          <h4>Lavanya Meiyammai P</h4>
+          <div class="member-role">Validation, Testing &amp; Documentation Lead</div>
+          <div class="member-edu">B.Tech Biotechnology Student 2nd Yr</div>
+          <a href="https://www.linkedin.com/in/lavanya-meiyammai-p-2a8522384" target="_blank" rel="noopener noreferrer" class="member-linkedin-btn" aria-label="Lavanya Meiyammai P LinkedIn">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
+            <span>LinkedIn</span>
+          </a>
+        </div>
+
+        <!-- Member 2: Vignesh R S -->
+        <div class="member-card reticle-box tilt-card scroll-reveal">
+          <div class="photo-frame">
+            <img src="images/vicky.jpeg" alt="Vignesh R S" class="member-photo"
+              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="avatar-fallback">VR</div>
+          </div>
+          <h4>Vignesh R S</h4>
+          <div class="member-role">Chemical Sensor &amp; Dosimeter Research Lead</div>
+          <div class="member-edu">B.Tech Biotechnology 2nd Yr</div>
+          <a href="https://www.linkedin.com/in/vignesh-r-s-983980383" target="_blank" rel="noopener noreferrer" class="member-linkedin-btn" aria-label="Vignesh R S LinkedIn">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
+            <span>LinkedIn</span>
+          </a>
+        </div>
+
+        <!-- Member 3: Kandeepan A -->
+        <div class="member-card reticle-box tilt-card scroll-reveal">
+          <div class="photo-frame">
+            <img src="images/kandee.jpeg" alt="Kandeepan A" class="member-photo"
+              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="avatar-fallback">KA</div>
+          </div>
+          <h4>Kandeepan A</h4>
+          <div class="member-role">Hardware &amp; Wearable Integration Engineer</div>
+          <div class="member-edu">B.Tech Biotechnology 2nd Yr</div>
+          <a href="https://www.linkedin.com/in/kandeepan-a-b74187381" target="_blank" rel="noopener noreferrer" class="member-linkedin-btn" aria-label="Kandeepan A LinkedIn">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
+            <span>LinkedIn</span>
+          </a>
+        </div>
+
+        <!-- Member 4: Vishnu Vardhan V N -->
+        <div class="member-card reticle-box tilt-card scroll-reveal">
+          <div class="photo-frame">
+            <img src="images/vishnu.jpg" alt="Vishnu Vardhan V N" class="member-photo"
+              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="avatar-fallback">VV</div>
+          </div>
+          <h4>Vishnu Vardhan V N</h4>
+          <div class="member-role">Team Leader &middot; Mobile Application &amp; Image Processing</div>
+          <div class="member-edu">B.Tech Information Technology 2nd Yr</div>
+          <a href="https://www.linkedin.com/in/vishnu-vardhan-v-n-88314a383" target="_blank" rel="noopener noreferrer" class="member-linkedin-btn" aria-label="Vishnu Vardhan V N LinkedIn">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
+            <span>LinkedIn</span>
+          </a>
+        </div>
+
+        <!-- Member 5: Mohammed Shibil M -->
+        <div class="member-card reticle-box tilt-card scroll-reveal">
+          <div class="photo-frame">
+            <img src="images/shibil.jpeg" alt="Mohammed Shibil M" class="member-photo"
+              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="avatar-fallback">MS</div>
+          </div>
+          <h4>Mohammed Shibil M</h4>
+          <div class="member-role">AI-Based Dose Estimation &amp; Calibration Engineer</div>
+          <div class="member-edu">B.Tech Information Technology 2nd Yr</div>
+          <a href="https://www.linkedin.com/in/mohammed-shibil-a2387b381" target="_blank" rel="noopener noreferrer" class="member-linkedin-btn" aria-label="Mohammed Shibil M LinkedIn">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
+            <span>LinkedIn</span>
+          </a>
+        </div>
+
+        <!-- Member 6: Saranya A -->
+        <div class="member-card reticle-box tilt-card scroll-reveal">
+          <div class="photo-frame">
+            <img src="images/sara.jpeg" alt="Saranya A" class="member-photo"
+              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="avatar-fallback">SA</div>
+          </div>
+          <h4>Saranya A</h4>
+          <div class="member-role">Backend &amp; Exposure Monitoring Systems Engineer</div>
+          <div class="member-edu">B.Tech Information Technology 2nd Yr</div>
+          <a href="https://www.linkedin.com/in/saranya-arumugam-7468ab384" target="_blank" rel="noopener noreferrer" class="member-linkedin-btn" aria-label="Saranya A LinkedIn">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
+            <span>LinkedIn</span>
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       MENTORS SECTION 
+       ========================================================================== -->
+  <section class="section" id="mentors">
+    <div class="wrap">
+      <div class="eyebrow">Guidance &amp; Advisory</div>
+      <div class="section-head scroll-reveal" style="margin-bottom: 36px;">
+        <h2 class="h2">Our Mentors</h2>
+        <p class="lede">Distinguished faculty and institutional leaders guiding our hackathon innovation.</p>
+      </div>
+
+      <div class="mentor-line-heading scroll-reveal">LEADERSHIP MENTORS</div>
+      <div class="mentor-grid-2">
+
+        <div class="mentor-card reticle-box tilt-card scroll-reveal">
+          <div class="photo-frame">
+            <img src="images/muthusamysir.jpg" alt="Mr. K. Muthusamy" class="member-photo"
+              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="avatar-fallback">KM</div>
+          </div>
+          <h4>Mr. K. Muthusamy</h4>
+          <div class="mentor-role">Head - Technical Competition and Hackathon</div>
+          <a href="https://www.linkedin.com/in/muthusamy-k-a7ba161b6" target="_blank" rel="noopener noreferrer" class="member-linkedin-btn" aria-label="Mr. K. Muthusamy LinkedIn">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
+            <span>LinkedIn</span>
+          </a>
+        </div>
+
+        <div class="mentor-card reticle-box tilt-card scroll-reveal">
+          <div class="photo-frame">
+            <img src="images/gajendransir.jpg" alt="Er Gajendran Parthasarathi" class="member-photo"
+              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="avatar-fallback">GP</div>
+          </div>
+          <h4>Er Gajendran Parthasarathi</h4>
+          <div class="mentor-role">Head - School of Design and Innovation</div>
+          <a href="https://www.linkedin.com/in/er-gajendran-parthasarathi-9689a2109" target="_blank" rel="noopener noreferrer" class="member-linkedin-btn" aria-label="Er Gajendran Parthasarathi LinkedIn">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
+            <span>LinkedIn</span>
+          </a>
+        </div>
+
+      </div>
+
+      <div class="mentor-line-heading scroll-reveal" style="margin-top: 48px;">FACULTY MENTORS</div>
+      <div class="mentor-grid-4">
+
+        <div class="mentor-card reticle-box tilt-card scroll-reveal">
+          <div class="photo-frame">
+            <img src="images/sathyapriyamam.jpeg" alt="Mrs. Sathyapriya A" class="member-photo"
+              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="avatar-fallback">SP</div>
+          </div>
+          <h4>Mrs. Sathyapriya A</h4>
+          <div class="mentor-role">Head of the Department <br>Dept of Biotechnology</div>
+          <a href="https://www.linkedin.com/in/sathya-priya-2354251a2" target="_blank" rel="noopener noreferrer" class="member-linkedin-btn" aria-label="Mrs. Sathyapriya A LinkedIn">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
+            <span>LinkedIn</span>
+          </a>
+        </div>
+
+        <div class="mentor-card reticle-box tilt-card scroll-reveal">
+          <div class="photo-frame">
+            <img src="images/mangayarkarasimam.jpeg" alt="Mrs. Mangayarkarasi" class="member-photo"
+              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="avatar-fallback">MM</div>
+          </div>
+          <h4>Mrs. Mangayarkarasi</h4>
+          <div class="mentor-role">Assistant Professor <br>Dept of Biotechnology</div>
+          <a href="https://www.linkedin.com/in/mangayarkarasi-govindaraj-209584266" target="_blank" rel="noopener noreferrer" class="member-linkedin-btn" aria-label="Mrs. Mangayarkarasi LinkedIn">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
+            <span>LinkedIn</span>
+          </a>
+        </div>
+
+        <div class="mentor-card reticle-box tilt-card scroll-reveal">
+          <div class="photo-frame">
+            <img src="images/karthikamam.jpg" alt="Mrs. Karthika R" class="member-photo"
+              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="avatar-fallback">KR</div>
+          </div>
+          <h4>Mrs. Karthika R</h4>
+          <div class="mentor-role">Head of the Department <br>Dept of Information Technology</div>
+          <a href="https://www.linkedin.com/in/karthika-rajaram-580676146" target="_blank" rel="noopener noreferrer" class="member-linkedin-btn" aria-label="Mrs. Karthika R LinkedIn">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
+            <span>LinkedIn</span>
+          </a>
+        </div>
+
+        <div class="mentor-card reticle-box tilt-card scroll-reveal">
+          <div class="photo-frame">
+            <img src="images/sureshsir.jpeg" alt="Mr. Suresh Kumar A" class="member-photo"
+              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="avatar-fallback">SK</div>
+          </div>  
+          <h4>Mr. Suresh Kumar A</h4>
+          <div class="mentor-role">Assistant Professor <br>Dept of Information Technology</div>
+          <a href="https://www.linkedin.com/in/a-suresh-kumar-75023a22a" target="_blank" rel="noopener noreferrer" class="member-linkedin-btn" aria-label="Mr. Suresh Kumar A LinkedIn">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
+            <span>LinkedIn</span>
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Final CTA with Radar Background -->
+  <section id="cta">
+    <canvas id="ctaSweep"></canvas>
+    <div class="wrap scroll-reveal">
+      <h2>Turn sonar data into decisions.</h2>
+      <div class="lines">Detect. Classify. Locate. Review. Report.</div>
+      <div class="cta-actions">
+        <a href="#technology" class="btn btn-primary btn-ping">Explore Technology</a>
+        <a href="#how-it-works" class="btn btn-ghost">How The System Works</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Professional Tactical Footer -->
+  <footer>
+    <div class="wrap">
+      <div class="foot-grid">
+        <div>
+          <div class="brand" style="margin-bottom:14px;">
+            <div class="brand-logo-icon">
+              <svg width="26" height="26" viewBox="0 0 30 30" fill="none">
+                <circle cx="15" cy="15" r="13" stroke="rgba(2, 132, 199, 0.3)" stroke-width="1.2"/>
+                <circle cx="15" cy="15" r="8.5" stroke="rgba(2, 132, 199, 0.5)" stroke-width="1.2"/>
+                <path d="M15 15 L15 2" stroke="#0284c7" stroke-width="1.6"/>
+                <circle cx="15" cy="15" r="2.5" fill="#0284c7"/>
+              </svg>
+            </div>
+            <div class="brand-text" style="font-size:18px;">SONARIS</div>
+          </div>
+          <p style="color:var(--text-dim); font-size:13.5px; max-width:340px; line-height:1.65;">
+            AI-powered side-scan sonar intelligence for marine debris detection, physical shadow ray-tracing verification, and millimeter-geotagged reporting.
+          </p>
+        </div>
+
+        <div class="foot-links">
+          <span class="mono" style="color:var(--cyan-deep); font-size:11px; font-weight:700;">NAVIGATION</span>
+          <a href="#hero">Overview</a>
+          <a href="#technology">Technology</a>
+          <a href="#how-it-works">How It Works</a>
+          <a href="#dashboard">Dashboard</a>
+          <a href="#preprocessing">Preprocessing</a>
+          <a href="#applications">Applications</a>
+          <a href="#team">Team</a>
+        </div>
+
+        <div class="foot-links">
+          <span class="mono" style="color:var(--cyan-deep); font-size:11px; font-weight:700;">ORGANIZATION</span>
+          <span>Team FAB X // SIH 2026</span>
+          <a href="#team">GitHub Repository</a>
+          <a href="#team">LinkedIn Showcase</a>
+          <a href="#team">Contact Flight Deck</a>
+        </div>
+      </div>
+
+      <div class="foot-bottom">
+        <span>© 2026 SONARIS — Autonomous Hydroacoustic Marine Intelligence</span>
+        <span>Team FAB X · Smart India Hackathon</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Floating Scroll-to-Top Button -->
+  <button id="scrollTopBtn" aria-label="Scroll to top">↑</button>
+
+  <!-- Modular Scripts -->
+  <script src="js/sonar3d.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/slider.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
